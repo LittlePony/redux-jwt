@@ -1,0 +1,58 @@
+{
+  "name": "@littlepony/redux-jwt",
+  "version": "0.0.1",
+  "description": "Redux JWT middleware",
+  "main": "index.js",
+  "files": ["dist/**/*"],
+  "scripts": {
+    "test": "jest --coverage",
+    "build": "npm run clean && npm run build:types && webpack",
+    "build:types": "tsc --emitDeclarationOnly --outdir dist",
+    "clean": "rimraf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LittlePony/redux-jwt.git"
+  },
+  "keywords": [
+    "redux",
+    "jwt"
+  ],
+  "author": "LittlePony",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LittlePony/redux-jwt/issues"
+  },
+  "homepage": "https://github.com/LittlePony/redux-jwt#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.9.0",
+    "@babel/plugin-proposal-class-properties": "7.8.3",
+    "@babel/plugin-proposal-object-rest-spread": "7.9.0",
+    "@babel/preset-env": "7.9.0",
+    "@babel/preset-typescript": "7.9.0",
+    "@types/jest": "25.1.4",
+    "@types/ws": "7.2.3",
+    "@typescript-eslint/eslint-plugin": "2.25.0",
+    "babel-loader": "8.1.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-typescript": "7.2.0",
+    "eslint-formatter-pretty": "3.0.1",
+    "eslint-plugin-eslint-comments": "3.1.2",
+    "eslint-plugin-import": "2.20.1",
+    "eslint-plugin-jest": "23.8.2",
+    "eslint-plugin-jsx-a11y": "6.2.3",
+    "eslint-plugin-promise": "4.2.1",
+    "eslint-plugin-react": "7.19.0",
+    "flux-standard-action": "^2.1.1",
+    "jest": "25.2.3",
+    "redux-mock-store": "^1.5.4",
+    "ts-jest": "25.2.1",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
+  },
+  "dependencies": {
+    "redux": "~4"
+  }
+}
