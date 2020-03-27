@@ -29,22 +29,14 @@ export default class JWTAuth {
 
     private handleLogon = (dispatch: Dispatch, token: Token) => {
         this.refreshToken = token.refresh;
-
-        dispatch({
-            type: JWT_UPDATE,
-            payload: token.access,
-        });
+        dispatch(this.update(token));
         this.scheduleRefresh(dispatch, token);
     };
 
     private refresh = (dispatch: Dispatch) => {
         this.options.onRefresh({refresh: this.refreshToken || ""})
             .then((token: AccessToken) => {
-
-                dispatch({
-                    type: JWT_UPDATE,
-                    payload: token.access,
-                });
+                dispatch(this.update(token));
                 this.scheduleRefresh(dispatch, token);
             })
             .catch((error: Error) => dispatch(this.error(error)))
@@ -61,6 +53,15 @@ export default class JWTAuth {
     };
 
     /**
+     * Update action creator
+     * @param token
+     */
+    private update = (token: Token) => ({
+            type: JWT_UPDATE,
+            payload: token.access,
+    });
+
+    /**
      * Error action creator
      * @param error
      */
@@ -70,6 +71,11 @@ export default class JWTAuth {
             error: true,
     });
 
+    /**
+     * JWT_LOGIN action handler
+     * @param dispatch
+     * @param action
+     */
     public login = (dispatch: Dispatch, action: Action) => {
         this.options.onLogin(action.payload)
             .then((token: Token) => this.handleLogon(dispatch, token))
@@ -77,6 +83,7 @@ export default class JWTAuth {
     };
 
     /**
+     * JWT_LOGOUT action handler
      * Stop timer and clear token
      * @param dispatch
      * @param action
