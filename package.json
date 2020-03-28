@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "description": "Redux JWT middleware",
   "main": "index.js",
-  "files": ["dist/**/*"],
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "test": "jest --coverage",
     "build": "npm run clean && npm run build:types && webpack",

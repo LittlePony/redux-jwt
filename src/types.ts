@@ -1,11 +1,10 @@
-import { JWT_LOGIN, JWT_LOGOUT, JWT_UPDATE, JWT_ERROR, JWT_EXIT } from './actionTypes';
+import { JWT_LOGIN, JWT_LOGOUT, JWT_UPDATE, JWT_ERROR } from './actionTypes';
 
 export type Action =
 | { type: typeof JWT_LOGIN, payload: any }
 | { type: typeof JWT_LOGOUT, payload: any }
 | { type: typeof JWT_UPDATE, payload: any }
 | { type: typeof JWT_ERROR, payload: any, error: Error }
-| { type: typeof JWT_EXIT, payload: any }
 
 export interface Credentials {
     username: string,
@@ -25,12 +24,16 @@ export type RefreshToken = {
     refresh: string
 }
 
-export interface Options  {
+export type Options = {
     onLogin: (credentials: Credentials) => any,
     onRefresh: (token: RefreshToken) => any,
     refreshInterval?: number,
+    isCached: boolean,
+    storage: Storage,
 }
 
 export interface DecodedToken {
     exp: number,
 }
+
+

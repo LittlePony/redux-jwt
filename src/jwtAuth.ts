@@ -1,45 +1,69 @@
 import { Dispatch } from "redux";
 import { Action, Token, AccessToken, DecodedToken, Options } from "./types";
-import { JWT_UPDATE, JWT_ERROR, JWT_EXIT } from "./actionTypes";
+import { update, error } from "./actions";
+import * as errors from  "./errors";
 
 export default class JWTAuth {
     private refreshToken: string | undefined;
 
-    private options: Options;
+    readonly options: Options;
 
-    private aheadTime: number;
+    readonly aheadTime: number;
 
     private scheduler: number | undefined;
+
+    private storage: Storage | undefined;
 
     constructor(options: Options) {
         this.refreshToken = undefined;
         this.options = options;
         this.aheadTime = 5000;
         this.scheduler = undefined;
+        this.storage = options.storage;
     }
 
-    private accessLifetime = (access: DecodedToken) => (access.exp * 1000 - Date.now());
+    /**
+     * Token lifetime, ms
+     * @param token
+     */
+    private tokenLifetime = (token: DecodedToken) => (token.exp * 1000 - Date.now());
 
-    private getTimespan = (token: Token) => {
-        if (token.access) {
-            return this.accessLifetime(this.parseJwt(token.access)) - this.aheadTime
+    /**
+     * Time after which the token must be updated, ms
+     * @param token
+     */
+    private getTimespan = (token: string | undefined) => {
+        if (token) {
+            const timespan = this.tokenLifetime(this.parseJwt(token)) - this.aheadTime;
+            return timespan > 0 ? timespan : 0
         }
-        throw new Error("Invalid access token")
+        throw new errors.InvalidAccessToken()
     };
 
+    /**
+     * Success login handler
+     * @param dispatch
+     * @param token
+     */
     private handleLogon = (dispatch: Dispatch, token: Token) => {
         this.refreshToken = token.refresh;
-        dispatch(this.update(token));
+        dispatch(update(token));
+        this.options.isCached && this.save(token);
         this.scheduleRefresh(dispatch, token);
     };
 
+    /**
+     * Invoke callback onRefresh
+     * @param dispatch
+     */
     private refresh = (dispatch: Dispatch) => {
         this.options.onRefresh({refresh: this.refreshToken || ""})
             .then((token: AccessToken) => {
-                dispatch(this.update(token));
+                dispatch(update(token));
+                this.options.isCached && this.save({access: token.access});
                 this.scheduleRefresh(dispatch, token);
             })
-            .catch((error: Error) => dispatch(this.error(error)))
+            .catch((err: Error) => dispatch(error(err)))
     };
 
     /**
@@ -48,28 +72,10 @@ export default class JWTAuth {
      * @param token
      */
     private scheduleRefresh = (dispatch: Dispatch, token: Token) => {
-        const refreshTimespan = this.getTimespan(token);
+        const refreshTimespan = this.getTimespan(token.access);
+        this.scheduler && clearTimeout(this.scheduler);
         this.scheduler = window.setTimeout(() => this.refresh(dispatch), refreshTimespan);
     };
-
-    /**
-     * Update action creator
-     * @param token
-     */
-    private update = (token: Token) => ({
-            type: JWT_UPDATE,
-            payload: token.access,
-    });
-
-    /**
-     * Error action creator
-     * @param error
-     */
-    private error = (error: Error) => ({
-            type: JWT_ERROR,
-            payload: error,
-            error: true,
-    });
 
     /**
      * JWT_LOGIN action handler
@@ -79,7 +85,7 @@ export default class JWTAuth {
     public login = (dispatch: Dispatch, action: Action) => {
         this.options.onLogin(action.payload)
             .then((token: Token) => this.handleLogon(dispatch, token))
-            .catch((error: Error) => dispatch(this.error(error)))
+            .catch((err: Error) => dispatch(error(err)))
     };
 
     /**
@@ -91,7 +97,52 @@ export default class JWTAuth {
     public logout = (dispatch: Dispatch, action: Action) => {
         this.refreshToken = undefined;
         this.scheduler && clearTimeout(this.scheduler);
-        dispatch({type: JWT_EXIT})
+    };
+
+    /**
+     * Setup cached tokens
+     * @param dispatch
+     */
+    public load = (dispatch: Dispatch) => {
+        const {storage} = this.options;
+        if (!storage) {
+            throw new errors.StorageUndefined()
+        }
+        const refresh = storage.getItem("jwt.refresh") || undefined;
+        const isRefreshValid = this.isTokenValid(refresh);
+        if (isRefreshValid) {
+            this.refreshToken = refresh;
+        }
+        const access = storage.getItem("jwt.access") || undefined;
+        const isAccessValid = this.isTokenValid(access);
+        if (isAccessValid) {
+            dispatch(update({ access }));
+        }
+        if(isRefreshValid && isAccessValid && this.getTimespan(access) > this.aheadTime) {
+            this.scheduleRefresh(dispatch, { access })
+        } else if (isRefreshValid) {
+            this.refresh(dispatch)
+        }
+    };
+
+    /**
+     * Save token
+     * @param token
+     */
+    public save = (token: Token) => {
+        const {storage} = this.options;
+        if (!storage) {
+            throw new errors.StorageUndefined()
+        }
+        if (!token.access) {
+            throw new errors.InvalidAccessToken()
+        }
+        try {
+            storage.setItem("jwt.access", token.access);
+            token.refresh && storage.setItem("jwt.refresh", token.refresh)
+        } catch {
+            throw new errors.StorageError()
+        }
     };
 
     /**
@@ -100,10 +151,34 @@ export default class JWTAuth {
      * @returns {object}
      */
     private parseJwt(token: string): DecodedToken {
-        const base64Url = token.split(".")[1];
-        const base64 = base64Url
-            .replace("-", "+")
-            .replace("_", "/");
-        return JSON.parse(window.atob(base64));
+        if (!token) {
+            throw new errors.InvalidToken()
+        }
+        try {
+            const base64Url = token.split(".")[1];
+            const base64 = base64Url
+                .replace("-", "+")
+                .replace("_", "/");
+            return JSON.parse(window.atob(base64));
+        }
+        catch {
+            throw new errors.InvalidToken()
+        }
+    }
+
+    /**
+     * Do we have a valid token
+     * @param token
+     */
+    private isTokenValid(token: string | undefined) {
+        if (!token) {
+            return false
+        }
+        try {
+            if(this.getTimespan(token) > 0) {
+                return true
+            }
+        } catch {}
+        return false
     }
 }
