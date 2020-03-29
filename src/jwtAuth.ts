@@ -12,14 +12,11 @@ export default class JWTAuth {
 
     private scheduler: number | undefined;
 
-    private storage: Storage | undefined;
-
     constructor(options: Options) {
         this.refreshToken = undefined;
         this.options = options;
         this.aheadTime = 5000;
         this.scheduler = undefined;
-        this.storage = options.storage;
     }
 
     /**
@@ -100,6 +97,7 @@ export default class JWTAuth {
     };
 
     /**
+     * JWT_LOAD action handler
      * Setup cached tokens
      * @param dispatch
      */
