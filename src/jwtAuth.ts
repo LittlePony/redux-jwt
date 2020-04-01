@@ -6,9 +6,9 @@ import * as errors from  "./errors";
 export default class JWTAuth {
     private refreshToken: string | undefined;
 
-    readonly options: Options;
+    private readonly options: Options;
 
-    readonly aheadTime: number;
+    private readonly aheadTime: number;
 
     private scheduler: number | undefined;
 
