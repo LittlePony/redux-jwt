@@ -94,6 +94,9 @@ export default class JWTAuth {
     public logout = (dispatch: Dispatch, action: Action) => {
         this.refreshToken = undefined;
         this.scheduler && clearTimeout(this.scheduler);
+        const {storage} = this.options;
+        storage.setItem("jwt.refresh", "");
+        storage.setItem("jwt.access", "");
     };
 
     /**

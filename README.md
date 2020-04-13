@@ -25,6 +25,7 @@ const store = configureStore();
 #### User dispatched actions
 
 ##### `JWT_LOGIN`
+`login` action creator accepts an object with named parameters ('username' and 'password').
 ```js
 import { login } from "@littlepony/redux-jwt";
 
@@ -35,6 +36,17 @@ store.dispatch(login({username: "root", password: "P@S$W0Rd"}))
 import { logout } from "@littlepony/redux-jwt";
 
 store.dispatch(logout())
+```
+
+##### `JWT_LOAD`
+```js
+import { load } from "@littlepony/redux-jwt";
+
+class App extends Component {
+    componentDidMount() {
+        store.dispatch(load())
+    }
+}
 ```
 
 #### Middleware dispatched actions

@@ -1,4 +1,4 @@
-import { Middleware, MiddlewareAPI, Dispatch } from "redux";
+import { Middleware, MiddlewareAPI } from "redux";
 import JWTAuth from "./jwtAuth";
 import { handleLogin, handleRefresh } from "./defaultHandler";
 import { Action, Options } from "./types";
