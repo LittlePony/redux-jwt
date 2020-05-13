@@ -9,9 +9,10 @@
   },
   "include": [
     "./src",
-    "./test"
+    "./webpack.config.js"
   ],
   "exclude": [
     "node_modules",
-    "**/__tests__/*"]
+    "**/__tests__/*"
+  ]
 }

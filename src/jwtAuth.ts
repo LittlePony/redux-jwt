@@ -1,7 +1,7 @@
 import { Dispatch } from "redux";
 import { Action, Token, AccessToken, DecodedToken, Options } from "./types";
 import { update, error } from "./actions";
-import * as errors from  "./errors";
+import * as errors from "./errors";
 
 export default class JWTAuth {
     private refreshToken: string | undefined;
@@ -32,9 +32,9 @@ export default class JWTAuth {
     private getTimespan = (token: string | undefined) => {
         if (token) {
             const timespan = this.tokenLifetime(this.parseJwt(token)) - this.aheadTime;
-            return timespan > 0 ? timespan : 0
+            return timespan > 0 ? timespan : 0;
         }
-        throw new errors.InvalidAccessToken()
+        throw new errors.InvalidAccessToken();
     };
 
     /**
@@ -58,9 +58,9 @@ export default class JWTAuth {
             .then((token: AccessToken) => {
                 dispatch(update(token));
                 this.options.isCached && this.save({access: token.access});
-                this.scheduleRefresh(dispatch, token);
+                return this.scheduleRefresh(dispatch, token);
             })
-            .catch((err: Error) => dispatch(error(err)))
+            .catch((err: Error) => dispatch(error(err)));
     };
 
     /**
@@ -82,7 +82,7 @@ export default class JWTAuth {
     public login = (dispatch: Dispatch, action: Action) => {
         this.options.onLogin(action.payload)
             .then((token: Token) => this.handleLogon(dispatch, token))
-            .catch((err: Error) => dispatch(error(err)))
+            .catch((err: Error) => dispatch(error(err)));
     };
 
     /**
@@ -91,6 +91,7 @@ export default class JWTAuth {
      * @param dispatch
      * @param action
      */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public logout = (dispatch: Dispatch, action: Action) => {
         this.refreshToken = undefined;
         this.scheduler && clearTimeout(this.scheduler);
@@ -107,7 +108,7 @@ export default class JWTAuth {
     public load = (dispatch: Dispatch) => {
         const {storage} = this.options;
         if (!storage) {
-            throw new errors.StorageUndefined()
+            throw new errors.StorageUndefined();
         }
         const refresh = storage.getItem("jwt.refresh") || undefined;
         const isRefreshValid = this.isTokenValid(refresh);
@@ -119,10 +120,10 @@ export default class JWTAuth {
         if (isAccessValid) {
             dispatch(update({ access }));
         }
-        if(isRefreshValid && isAccessValid && this.getTimespan(access) > this.aheadTime) {
-            this.scheduleRefresh(dispatch, { access })
+        if (isRefreshValid && isAccessValid && this.getTimespan(access) > this.aheadTime) {
+            this.scheduleRefresh(dispatch, { access });
         } else if (isRefreshValid) {
-            this.refresh(dispatch)
+            this.refresh(dispatch);
         }
     };
 
@@ -133,16 +134,16 @@ export default class JWTAuth {
     public save = (token: Token) => {
         const {storage} = this.options;
         if (!storage) {
-            throw new errors.StorageUndefined()
+            throw new errors.StorageUndefined();
         }
         if (!token.access) {
-            throw new errors.InvalidAccessToken()
+            throw new errors.InvalidAccessToken();
         }
         try {
             storage.setItem("jwt.access", token.access);
-            token.refresh && storage.setItem("jwt.refresh", token.refresh)
+            token.refresh && storage.setItem("jwt.refresh", token.refresh);
         } catch {
-            throw new errors.StorageError()
+            throw new errors.StorageError();
         }
     };
 
@@ -151,9 +152,9 @@ export default class JWTAuth {
      * @param token
      * @returns {object}
      */
-    private parseJwt(token: string): DecodedToken {
+    private parseJwt = (token: string): DecodedToken => {
         if (!token) {
-            throw new errors.InvalidToken()
+            throw new errors.InvalidToken();
         }
         try {
             const base64Url = token.split(".")[1];
@@ -161,25 +162,25 @@ export default class JWTAuth {
                 .replace("-", "+")
                 .replace("_", "/");
             return JSON.parse(window.atob(base64));
+        } catch {
+            throw new errors.InvalidToken();
         }
-        catch {
-            throw new errors.InvalidToken()
-        }
-    }
+    };
 
     /**
      * Do we have a valid token
      * @param token
      */
-    private isTokenValid(token: string | undefined) {
+    private isTokenValid = (token: string | undefined) => {
         if (!token) {
-            return false
+            return false;
         }
         try {
-            if(this.getTimespan(token) > 0) {
-                return true
+            if (this.getTimespan(token) > 0) {
+                return true;
             }
+            // eslint-disable-next-line no-empty
         } catch {}
-        return false
-    }
+        return false;
+    };
 }

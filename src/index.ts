@@ -1,10 +1,11 @@
 import createMiddleware from "./middleware";
-export * from "./actionTypes";
 import { login, logout, load } from "./actions";
 
+export * from "./actionTypes";
+// noinspection JSUnusedGlobalSymbols
 export {
     login,
     logout,
     load,
-    createMiddleware as default
-}
+    createMiddleware as default,
+};

@@ -7,7 +7,7 @@ import { JWT_UPDATE, JWT_LOGIN, JWT_ERROR, JWT_LOGOUT, JWT_LOAD } from "./action
  */
 export const login = (credentials: Credentials) => ({
     type: JWT_LOGIN,
-    payload: credentials
+    payload: credentials,
 });
 
 /**
@@ -35,10 +35,10 @@ export const update = (token: Token) => ({
 
 /**
  * Middleware dispatched
- * @param error
+ * @param err
  */
-export const error = (error: Error) => ({
+export const error = (err: Error) => ({
     type: JWT_ERROR,
-    payload: error,
+    payload: err,
     error: true,
 });
