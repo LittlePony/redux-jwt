@@ -20,18 +20,13 @@ export default class JWTAuth {
     }
 
     /**
-     * Token lifetime, ms
-     * @param token
-     */
-    private tokenLifetime = (token: DecodedToken) => (token.exp * 1000 - Date.now());
-
-    /**
      * Time after which the token must be updated, ms
      * @param token
      */
     private getTimespan = (token: string | undefined) => {
         if (token) {
-            const timespan = this.tokenLifetime(this.parseJwt(token)) - this.aheadTime;
+            const tokenLifetime = (decoded: DecodedToken) => (decoded.exp * 1000 - Date.now());
+            const timespan = tokenLifetime(this.parseJwt(token)) - this.aheadTime;
             return timespan > 0 ? timespan : 0;
         }
         throw new errors.InvalidAccessToken();
