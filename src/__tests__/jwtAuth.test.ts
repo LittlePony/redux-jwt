@@ -2,6 +2,7 @@ import JWTAuth from "../jwtAuth";
 import { Action, Credentials } from "../types";
 import * as actionTypes from "../actionTypes";
 import onLogin from "../__mocks__/onLogin";
+import onRefresh from "../__mocks__/onRefresh";
 import * as errors from "../errors";
 
 describe("ReduxWsJsonRpc", () => {
@@ -10,20 +11,19 @@ describe("ReduxWsJsonRpc", () => {
         getState: () => {
         },
     };
-    const handleRefresh = jest.fn();
-
     const options = {
         onLogin,
-        onRefresh: handleRefresh,
+        onRefresh,
         refreshInterval: 5000,
         isCached: true,
         storage: localStorage,
     };
-
     let jwtAuth: JWTAuth;
 
+    jwtAuth = new JWTAuth(options);
+
     beforeEach(() => {
-        jwtAuth = new JWTAuth(options);
+        // jwtAuth = new JWTAuth(options);
         store.dispatch.mockClear();
     });
 
@@ -38,6 +38,34 @@ describe("ReduxWsJsonRpc", () => {
             jwtAuth.login(store.dispatch, action);
             expect(spyOnLogin).toHaveBeenCalledTimes(1);
             expect(spyOnLogin).toHaveBeenCalledWith(credentials);
+        });
+    });
+
+    describe("refresh", () => {
+        it("onRefresh callback invoked with token", () => {
+            // @ts-ignore
+            const spyOnRefresh = jest.spyOn(jwtAuth.options, "onRefresh");
+            // @ts-ignore
+            jwtAuth.refresh(store.dispatch);
+            expect(spyOnRefresh).toHaveBeenCalledTimes(1);
+            expect(spyOnRefresh).toHaveBeenCalledWith({refresh: "mockRefreshToken"});
+        });
+
+        it("refresh callback returned token", async () => {
+            // @ts-ignore
+            const spySave = jest.spyOn(jwtAuth, "save")
+                .mockImplementationOnce(() => true);
+            // @ts-ignore
+            const spyScheduleRefresh = jest.spyOn(jwtAuth, "scheduleRefresh")
+                // @ts-ignore
+                .mockImplementationOnce((a, b) => b);
+
+            expect.assertions(2);
+            // @ts-ignore
+            await jwtAuth.refresh(store.dispatch);
+            expect(spySave).toHaveBeenCalledTimes(1);
+            // @ts-ignore
+            expect(spyScheduleRefresh).toHaveBeenCalledWith(expect.anything(), {access: "mockAccessToken"});
         });
     });
 
@@ -82,7 +110,7 @@ describe("ReduxWsJsonRpc", () => {
             expect(getTimespan(expiredToken)).toBe(0);
 
             jest.spyOn(global.Date, "now")
-                .mockImplementationOnce(() => new Date("2019.01.01").valueOf());
+                .mockImplementationOnce(() => new Date("2019.01.01").getTime());
             // @ts-ignore
             expect(getTimespan(validToken)).toEqual(2524608000000 - jwtAuth.aheadTime);
         });

@@ -1,5 +1,5 @@
 import { Dispatch } from "redux";
-import { Action, Token, AccessToken, DecodedToken, Options } from "./types";
+import { Action, Token, AccessToken, DecodedToken, Options, RefreshToken } from "./types";
 import { update, error } from "./actions";
 import * as errors from "./errors";
 
@@ -25,7 +25,7 @@ export default class JWTAuth {
      */
     private getTimespan = (token: string | undefined) => {
         if (token) {
-            const tokenLifetime = (decoded: DecodedToken) => (decoded.exp * 1000 - Date.now());
+            const tokenLifetime = (decoded: DecodedToken) => decoded.exp * 1000 - Date.now();
             const timespan = tokenLifetime(this.parseJwt(token)) - this.aheadTime;
             return timespan > 0 ? timespan : 0;
         }
@@ -48,15 +48,14 @@ export default class JWTAuth {
      * Invoke callback onRefresh
      * @param dispatch
      */
-    private refresh = (dispatch: Dispatch) => {
-        this.options.onRefresh({refresh: this.refreshToken || ""})
+    private refresh = (dispatch: Dispatch) =>
+        this.options.onRefresh({refresh: this.refreshToken} as RefreshToken)
             .then((token: AccessToken) => {
                 dispatch(update(token));
                 this.options.isCached && this.save({access: token.access});
                 return this.scheduleRefresh(dispatch, token);
             })
             .catch((err: Error) => dispatch(error(err)));
-    };
 
     /**
      * Schedule next refresh
@@ -74,11 +73,10 @@ export default class JWTAuth {
      * @param dispatch
      * @param action
      */
-    public login = (dispatch: Dispatch, action: Action) => {
+    public login = (dispatch: Dispatch, action: Action) =>
         this.options.onLogin(action.payload)
             .then((token: Token) => this.handleLogon(dispatch, token))
             .catch((err: Error) => dispatch(error(err)));
-    };
 
     /**
      * JWT_LOGOUT action handler
@@ -90,6 +88,7 @@ export default class JWTAuth {
     public logout = (dispatch: Dispatch, action: Action) => {
         this.refreshToken = undefined;
         this.scheduler && clearTimeout(this.scheduler);
+        this.scheduler = undefined;
         const {storage} = this.options;
         storage.setItem("jwt.refresh", "");
         storage.setItem("jwt.access", "");
