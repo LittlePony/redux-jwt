@@ -1,22 +1,53 @@
 import JWTAuth from "../jwtAuth";
-import { Action, Credentials } from "../types";
+import { Action, Credentials, Token } from "../types";
 import * as actionTypes from "../actionTypes";
-import onLogin from "../__mocks__/onLogin";
-import onRefresh from "../__mocks__/onRefresh";
 import * as errors from "../errors";
 
+
+const handleLoginMock = (credentials: Credentials) => {
+    const token = ({access: "mockAccessToken", refresh: "mockRefreshToken"});
+
+    return new Promise<any>((resolve, reject) => {
+        if (credentials.username === "mockUsername" && credentials.password === "mockPassword") {
+            resolve(token);
+        } else {
+            reject(new Error());
+        }
+    });
+};
+
+const handleRefreshMock = (token: Token) => {
+    // const token = ({access: "mockAccessToken", refresh: "mockRefreshToken"});
+    const accessToken = ({access: "mockAccessToken"});
+
+    return new Promise<any>((resolve, reject) => {
+        if (token?.refresh === "mockRefreshToken") {
+            resolve(accessToken);
+        } else {
+            reject(new Error());
+        }
+    });
+};
+
 describe("ReduxWsJsonRpc", () => {
+    const invalidToken = "invalidToken";
+    const emptyToken = "";
+    const undefinedToken = undefined;
+    const expiredToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiI5MTUxMzgwMDAiLCJuYW1lIjoiSm9obiBEb2UiLC"
+        + "JpZCI6MX0.Q0qYZFVBVqjW0jvMzlGskZDqHfGlVGyFA4BiRqLPypE"; // 1999.01.01
+    const validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiI0MDcwODk4MDAwIiwibmFtZSI6IkpvaG4gRG9lIiwia"
+        + "WQiOjF9.nSQav6vAgPL7vf1SUNa317kVjjZRaCxtxVan9W8bbjA"; // 2099.01.01
     const store = {
         dispatch: jest.fn((i: any) => i),
         getState: () => {
         },
     };
     const options = {
-        onLogin,
-        onRefresh,
+        onLogin: handleLoginMock,
+        onRefresh: handleRefreshMock,
         refreshInterval: 5000,
         isCached: true,
-        storage: localStorage,
+        storage: window.localStorage,
     };
     let jwtAuth: JWTAuth;
 
@@ -70,14 +101,6 @@ describe("ReduxWsJsonRpc", () => {
     });
 
     describe("tokens", () => {
-        const invalidToken = "invalidToken";
-        const emptyToken = "";
-        const undefinedToken = undefined;
-        const expiredToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiI5MTUxMzgwMDAiLCJuYW1lIjoiSm9obiBEb2UiLC"
-            + "JpZCI6MX0.Q0qYZFVBVqjW0jvMzlGskZDqHfGlVGyFA4BiRqLPypE"; // 1999.01.01
-        const validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiI0MDcwODk4MDAwIiwibmFtZSI6IkpvaG4gRG9lIiwia"
-            + "WQiOjF9.nSQav6vAgPL7vf1SUNa317kVjjZRaCxtxVan9W8bbjA"; // 2099.01.01
-
         it("isTokenValid", () => {
             // @ts-ignore
             const {isTokenValid} = jwtAuth;
@@ -113,6 +136,32 @@ describe("ReduxWsJsonRpc", () => {
                 .mockImplementationOnce(() => new Date("2019.01.01").getTime());
             // @ts-ignore
             expect(getTimespan(validToken)).toEqual(2524608000000 - jwtAuth.aheadTime);
+        });
+
+        it("save", () => {
+            const spySetItem = jest.spyOn(Storage.prototype, "setItem");
+
+            jwtAuth.save({access: validToken});
+            expect(spySetItem).toBeCalled();
+            expect(spySetItem).toBeCalledWith("jwt.access", validToken);
+        });
+
+        it("load", () => {
+            const spyGetItem = jest.spyOn(Storage.prototype, "getItem");
+
+            jwtAuth.load(store.dispatch);
+            expect(spyGetItem).toBeCalledTimes(2);
+            expect(spyGetItem).toBeCalledWith("jwt.access");
+            expect(spyGetItem).toReturnWith(validToken);
+
+            expect(spyGetItem).toBeCalledWith("jwt.refresh");
+            expect(spyGetItem).toReturnWith("mockRefreshToken");
+        });
+
+        it("load() should throw Error with uncongigured storage", () => {
+            // @ts-ignore
+            jwtAuth = new JWTAuth({...options, storage: undefined});
+            expect(() => jwtAuth.load(store.dispatch)).toThrow(errors.StorageUndefined);
         });
     });
 });

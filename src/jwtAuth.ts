@@ -127,6 +127,7 @@ export default class JWTAuth {
      */
     public save = (token: Token) => {
         const {storage} = this.options;
+
         if (!storage) {
             throw new errors.StorageUndefined();
         }
