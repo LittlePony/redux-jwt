@@ -1,4 +1,6 @@
-# redux-jwt https://badge.fury.io/js/%40littlepony%2Fredux-jwt.svg
+# redux-jwt [![npm version](https://badge.fury.io/js/%40littlepony%2Fredux-jwt.svg)]
+
+
 
 ```sh
 $ npm i @littlepony/redux-jwt
