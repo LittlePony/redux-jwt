@@ -2,6 +2,7 @@ import JWTAuth from "../jwtAuth";
 import { Action, Credentials, Token } from "../types";
 import * as actionTypes from "../actionTypes";
 import * as errors from "../errors";
+import { JWT_UPDATE } from "../actionTypes";
 
 
 const handleLoginMock = (credentials: Credentials) => {
@@ -17,7 +18,6 @@ const handleLoginMock = (credentials: Credentials) => {
 };
 
 const handleRefreshMock = (token: Token) => {
-    // const token = ({access: "mockAccessToken", refresh: "mockRefreshToken"});
     const accessToken = ({access: "mockAccessToken"});
 
     return new Promise<any>((resolve, reject) => {
@@ -85,11 +85,11 @@ describe("ReduxWsJsonRpc", () => {
         it("refresh callback returned token", async () => {
             // @ts-ignore
             const spySave = jest.spyOn(jwtAuth, "save")
-                .mockImplementationOnce(() => true);
+                .mockImplementationOnce(() => {});
             // @ts-ignore
             const spyScheduleRefresh = jest.spyOn(jwtAuth, "scheduleRefresh")
                 // @ts-ignore
-                .mockImplementationOnce((a, b) => b);
+                .mockImplementationOnce(() => {});
 
             expect.assertions(2);
             // @ts-ignore
@@ -100,8 +100,8 @@ describe("ReduxWsJsonRpc", () => {
         });
     });
 
-    describe("tokens", () => {
-        it("isTokenValid", () => {
+    describe("Methods worked with tokens", () => {
+        it("isTokenValid() should determine operable token", () => {
             // @ts-ignore
             const {isTokenValid} = jwtAuth;
 
@@ -112,18 +112,18 @@ describe("ReduxWsJsonRpc", () => {
             expect(isTokenValid(validToken)).toBe(true);
         });
 
-        it("parseJwt", () => {
+        it("parseJwt() should return decoded token or throw error", () => {
             // @ts-ignore
             const {parseJwt} = jwtAuth;
             // @ts-ignore
             expect(() => parseJwt(undefinedToken)).toThrow(errors.InvalidToken);
             expect(() => parseJwt(invalidToken)).toThrow(errors.InvalidToken);
             expect(() => parseJwt(emptyToken)).toThrow(errors.InvalidToken);
-            expect(parseJwt(expiredToken).exp).toEqual((new Date("1999.01.01").getTime() / 1000).toString());
-            expect(parseJwt(validToken).exp).toEqual((new Date("2099.01.01").getTime() / 1000).toString());
+            expect(parseJwt(expiredToken).exp).toBe((new Date("1999.01.01").getTime() / 1000).toString());
+            expect(parseJwt(validToken).exp).toBe((new Date("2099.01.01").getTime() / 1000).toString());
         });
 
-        it("getTimespan", () => {
+        it("getTimespan() should return timespan or throw error", () => {
             // @ts-ignore
             const {getTimespan} = jwtAuth;
             // @ts-ignore
@@ -144,24 +144,75 @@ describe("ReduxWsJsonRpc", () => {
             jwtAuth.save({access: validToken});
             expect(spySetItem).toBeCalled();
             expect(spySetItem).toBeCalledWith("jwt.access", validToken);
+            // @ts-ignore
+            expect(jwtAuth.options.storage.getItem("jwt.access")).toBe(validToken);
+        });
+    });
+
+    describe("Methods worked with storage", () => {
+        beforeEach(() => {
+            jwtAuth = new JWTAuth({...options});
         });
 
-        it("load", () => {
+        it("load() call storage getItem", () => {
+            Storage.prototype.getItem = jest.fn(() => validToken);
             const spyGetItem = jest.spyOn(Storage.prototype, "getItem");
 
             jwtAuth.load(store.dispatch);
+
             expect(spyGetItem).toBeCalledTimes(2);
             expect(spyGetItem).toBeCalledWith("jwt.access");
-            expect(spyGetItem).toReturnWith(validToken);
-
             expect(spyGetItem).toBeCalledWith("jwt.refresh");
-            expect(spyGetItem).toReturnWith("mockRefreshToken");
         });
 
         it("load() should throw Error with uncongigured storage", () => {
             // @ts-ignore
-            jwtAuth = new JWTAuth({...options, storage: undefined});
+            jwtAuth.options.storage = undefined;
             expect(() => jwtAuth.load(store.dispatch)).toThrow(errors.StorageUndefined);
+        });
+
+        it("save() should throw StorageUndefined with unconfigured storage", () => {
+            // @ts-ignore
+            jwtAuth.options.storage = undefined;
+
+            expect(() => jwtAuth.save({access: "mockAccessToken"}))
+                .toThrow(errors.StorageUndefined);
+        });
+
+        it("save() should throw InvalidAccessToken without token", () => {
+            expect(() => jwtAuth.save({access: undefined}))
+                .toThrow(errors.InvalidAccessToken);
+        });
+
+        it("save() should throw StorageError on any Storage error", () => {
+            Storage.prototype.setItem = jest.fn(() => {
+                throw new errors.StorageError();
+            });
+            expect(() => jwtAuth.save({access: "mockAccessToken"}))
+                .toThrow(errors.StorageError);
+        });
+
+        it("load() should setup valid refresh token", () => {
+            jest.spyOn(global.Date, "now")
+                .mockImplementation(() => new Date("2019.01.01").getTime());
+
+            Storage.prototype.getItem = jest.fn(() => validToken);
+            jwtAuth.load(store.dispatch);
+            // @ts-ignore
+            expect(jwtAuth.refreshToken).toBe(validToken);
+        });
+
+        it("load() should dispatch update action with valid access token", () => {
+            jest.spyOn(global.Date, "now")
+                .mockImplementation(() => new Date("2019.01.01").getTime());
+
+            Storage.prototype.getItem = jest.fn(() => validToken);
+            jwtAuth.load(store.dispatch);
+
+            expect(store.dispatch).toHaveBeenCalledWith({
+                type: JWT_UPDATE,
+                payload: validToken,
+            });
         });
     });
 });
