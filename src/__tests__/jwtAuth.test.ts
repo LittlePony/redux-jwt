@@ -214,5 +214,18 @@ describe("ReduxWsJsonRpc", () => {
                 payload: validToken,
             });
         });
+
+        it("load() should immediately refresh access token", () => {
+            jest.spyOn(global.Date, "now")
+                .mockImplementation(() => new Date("2019.01.01").getTime());
+            // @ts-ignore
+            const spyOnRefresh = jest.spyOn(jwtAuth, "refresh");
+
+            Storage.prototype.getItem = jest.fn(key =>
+                (key === "jwt.refresh" ? validToken : invalidToken));
+
+            jwtAuth.load(store.dispatch);
+            expect(spyOnRefresh).toHaveBeenCalledWith(store.dispatch);
+        });
     });
 });
