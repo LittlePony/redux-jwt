@@ -2,8 +2,7 @@ import JWTAuth from "../jwtAuth";
 import { Action, Credentials, Token } from "../types";
 import * as actionTypes from "../actionTypes";
 import * as errors from "../errors";
-import { JWT_UPDATE } from "../actionTypes";
-
+import { JWT_UPDATE, JWT_LOGOUT } from "../actionTypes";
 
 const handleLoginMock = (credentials: Credentials) => {
     const token = ({access: "mockAccessToken", refresh: "mockRefreshToken"});
@@ -73,7 +72,7 @@ describe("ReduxWsJsonRpc", () => {
     });
 
     describe("refresh", () => {
-        it("onRefresh callback invoked with token", () => {
+        it("refresh() invoke onRefresh callback with token", () => {
             // @ts-ignore
             const spyOnRefresh = jest.spyOn(jwtAuth.options, "onRefresh");
             // @ts-ignore
@@ -82,7 +81,7 @@ describe("ReduxWsJsonRpc", () => {
             expect(spyOnRefresh).toHaveBeenCalledWith({refresh: "mockRefreshToken"});
         });
 
-        it("refresh callback returned token", async () => {
+        it("refresh() call save() after successfully resolve", async () => {
             // @ts-ignore
             const spySave = jest.spyOn(jwtAuth, "save")
                 .mockImplementationOnce(() => {});
@@ -97,6 +96,17 @@ describe("ReduxWsJsonRpc", () => {
             expect(spySave).toHaveBeenCalledTimes(1);
             // @ts-ignore
             expect(spyScheduleRefresh).toHaveBeenCalledWith(expect.anything(), {access: "mockAccessToken"});
+        });
+    });
+
+    describe("logout", () => {
+        jwtAuth = new JWTAuth({...options});
+        const action: Action = {type: JWT_LOGOUT};
+
+        it("onLogin callback invoked with credentials", () => {
+            jwtAuth.logout(store.dispatch, action);
+            // @ts-ignore
+            expect(jwtAuth.refreshToken).toBe(undefined);
         });
     });
 
@@ -203,9 +213,6 @@ describe("ReduxWsJsonRpc", () => {
         });
 
         it("load() should dispatch update action with valid access token", () => {
-            jest.spyOn(global.Date, "now")
-                .mockImplementation(() => new Date("2019.01.01").getTime());
-
             Storage.prototype.getItem = jest.fn(() => validToken);
             jwtAuth.load(store.dispatch);
 
@@ -215,17 +222,45 @@ describe("ReduxWsJsonRpc", () => {
             });
         });
 
-        it("load() should immediately refresh access token", () => {
+        it("load() should immediately refresh() access token", () => {
             jest.spyOn(global.Date, "now")
                 .mockImplementation(() => new Date("2019.01.01").getTime());
             // @ts-ignore
-            const spyOnRefresh = jest.spyOn(jwtAuth, "refresh");
+            const spyRefresh = jest.spyOn(jwtAuth, "refresh");
 
             Storage.prototype.getItem = jest.fn(key =>
                 (key === "jwt.refresh" ? validToken : invalidToken));
+            jwtAuth.load(store.dispatch);
+
+            expect(spyRefresh).toHaveBeenCalledWith(store.dispatch);
+        });
+
+        it("load() should schedule refresh() access token", () => {
+            jest.useFakeTimers();
+            jest.spyOn(global.Date, "now")
+                .mockImplementation(() => new Date("2019.01.01").getTime());
+            // @ts-ignore
+            const spyRefresh = jest.spyOn(jwtAuth, "refresh");
+            // @ts-ignore
+            const spyScheduleRefresh = jest.spyOn(jwtAuth, "scheduleRefresh");
+
+            Storage.prototype.getItem = jest.fn(key =>
+                (key === "jwt.refresh" ? validToken : validToken));
 
             jwtAuth.load(store.dispatch);
-            expect(spyOnRefresh).toHaveBeenCalledWith(store.dispatch);
+
+            expect(spyScheduleRefresh).toHaveBeenCalledTimes(1);
+            expect(spyScheduleRefresh).toHaveBeenCalledWith(store.dispatch, {access: validToken});
+
+            expect(window.setTimeout).toHaveBeenCalledTimes(1);
+            expect(setTimeout)
+                // @ts-ignore
+                .toHaveBeenLastCalledWith(expect.any(Function), jwtAuth.getTimespan(validToken));
+
+            jest.runOnlyPendingTimers();
+
+            expect(spyRefresh).toHaveBeenCalledTimes(1);
+            expect(spyRefresh).toHaveBeenCalledWith(store.dispatch);
         });
     });
 });

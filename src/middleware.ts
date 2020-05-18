@@ -16,9 +16,7 @@ const defaultOptions = {
  * @returns {Middleware}
  */
 export default (options: Options): Middleware => {
-    const finalOptions = {...defaultOptions, ...options};
-    const jwtAuth = new JWTAuth(finalOptions);
-
+    const jwtAuth = new JWTAuth({...defaultOptions, ...options});
     const dispatchTable = {
         [actionTypes.JWT_LOGIN]: jwtAuth.login,
         [actionTypes.JWT_LOGOUT]: jwtAuth.logout,

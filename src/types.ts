@@ -2,7 +2,7 @@ import { JWT_LOGIN, JWT_LOGOUT, JWT_UPDATE, JWT_ERROR } from "./actionTypes";
 
 export type Action =
 | { type: typeof JWT_LOGIN, payload: any }
-| { type: typeof JWT_LOGOUT, payload: any }
+| { type: typeof JWT_LOGOUT, payload?: any }
 | { type: typeof JWT_UPDATE, payload: any }
 | { type: typeof JWT_ERROR, payload: any, error: Error };
 

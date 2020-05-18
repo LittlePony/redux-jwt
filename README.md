@@ -1,4 +1,4 @@
-# redux-jwt [![npm version](https://badge.fury.io/js/%40littlepony%2Fredux-jwt.svg)]
+# redux-jwt ![npm version](https://badge.fury.io/js/%40littlepony%2Fredux-jwt.svg)
 
 
 
