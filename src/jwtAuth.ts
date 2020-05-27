@@ -6,10 +6,13 @@ import * as errors from "./errors";
 export default class JWTAuth {
     private refreshToken: string | undefined;
 
+    // middleware options
     private readonly options: Options;
 
+    // time between refresh start and token expires
     private readonly aheadTime: number;
 
+    // refresh timer id
     private scheduler: number | undefined;
 
     constructor(options: Options) {
@@ -38,6 +41,7 @@ export default class JWTAuth {
      * @param token
      */
     private handleLogon = (dispatch: Dispatch, token: Token) => {
+        this.options.onObtain && this.options.onObtain({access: token.access} as AccessToken);
         this.refreshToken = token.refresh;
         dispatch(update(token));
         this.options.isCached && this.save(token);

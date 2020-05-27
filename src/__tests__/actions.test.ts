@@ -1,6 +1,6 @@
 import * as actions from "../actions";
 import { Credentials } from "../types";
-import {JWT_ERROR, JWT_LOAD, JWT_LOGIN, JWT_LOGOUT, JWT_UPDATE} from "../actionTypes";
+import { JWT_ERROR, JWT_LOAD, JWT_LOGIN, JWT_LOGOUT, JWT_UPDATE } from "../actionTypes";
 
 
 describe("Test action creators", () => {
