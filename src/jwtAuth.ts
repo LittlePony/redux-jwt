@@ -41,7 +41,6 @@ export default class JWTAuth {
      * @param token
      */
     private handleLogon = (dispatch: Dispatch, token: Token) => {
-        this.options.onObtain && this.options.onObtain({access: token.access} as AccessToken);
         this.refreshToken = token.refresh;
         dispatch(update(token));
         this.options.isCached && this.save(token);

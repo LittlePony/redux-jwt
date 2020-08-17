@@ -27,7 +27,6 @@ export type RefreshToken = {
 export type Options = {
     onLogin: (credentials: Credentials) => any,
     onRefresh: (token: RefreshToken) => any,
-    onObtain: (token: AccessToken) => void,
     refreshInterval?: number,
     isCached: boolean,
     storage: Storage,
